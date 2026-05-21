@@ -45,7 +45,7 @@ jobs:
         repository: GTNewHorizons/GTNH-Actions-Workflows
         path: .gtnh-workflows
         fetch-depth: 0
-        
+
     - name: Find latest external-deps artifact for this commit
       id: find-artifact
       env:
@@ -102,7 +102,7 @@ jobs:
       run: chmod +x gradlew
 
     - name: Setup the workspace
-      run: ./gradlew --build-cache --info --stacktrace ${{ inputs.workspace }}
+      run: ./gradlew --build-cache --info --stacktrace ${{ inputs.workspace || 'setupCIWorkspace' }}
 
     - name: Compile the mod
       run: ./gradlew --build-cache --info --stacktrace assemble
@@ -156,7 +156,7 @@ jobs:
         PR_BRANCH: ${{ github.head_ref }}
         FIXED_BRANCH: ${{ github.head_ref }}-spotless-fixes
 
-    - name: Run server for up to ${{ inputs.timeout }} seconds
+    - name: Run server for up to ${{ inputs.timeout || 150 }} seconds
       if: ${{ !inputs.client-only }}
       run: |
         mkdir -p run/server
@@ -166,7 +166,7 @@ jobs:
         echo "level-seed=-6202107849386030209\nonline-mode=true\n" > run/server.properties
         echo "level-seed=-6202107849386030209\nonline-mode=true\n" > run/server/server.properties
         echo "stop" > run/stop.txt
-        timeout ${{ inputs.timeout }} ./gradlew --build-cache --info --stacktrace runServer 2>&1 < run/stop.txt | tee -a server.log || true
+        timeout ${{ inputs.timeout || 150 }} ./gradlew --build-cache --info --stacktrace runServer 2>&1 < run/stop.txt | tee -a server.log || true
 
     - name: Test no errors reported during server run
       if: ${{ !inputs.client-only }}
