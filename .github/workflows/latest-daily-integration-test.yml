@@ -38,6 +38,8 @@ jobs:
         with:
           command: pr apply $PR_URL --build_job "Build and test"
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          config: https://raw.githubusercontent.com/MalTeeez/packscripts-auto-builds/refs/heads/gtnh-daily/packscripts.json
+          annotated_file: https://raw.githubusercontent.com/MalTeeez/packscripts-auto-builds/refs/heads/gtnh-daily/annotated_mods.json
 
       - name: Run pack test
         run: |
