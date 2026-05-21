@@ -24,7 +24,7 @@ jobs:
             --jq '.[0].html_url')
           echo "url=$PR_URL" >> $GITHUB_OUTPUT
 
-  pack-test:
+  full-pack-test:
     needs: get-pr-url
     name: Test in latest daily
     runs-on: ubuntu-latest
@@ -36,7 +36,7 @@ jobs:
 
     steps:
       - name: Check out PR build artifact
-        uses: MalTeeez/packscripts@1.4
+        uses: MalTeeez/packscripts@1.4.3
         with:
           command: pr apply $PR_URL --build_job "Build and test"
           github_token: ${{ secrets.GITHUB_TOKEN }}

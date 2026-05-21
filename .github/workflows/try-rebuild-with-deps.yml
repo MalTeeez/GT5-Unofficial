@@ -1,0 +1,47 @@
+name: Try rebuilding with externally required PRs
+
+on:
+  workflow_run:
+    workflows: ["Build and test"]
+    types: [completed]
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  apply-external-pr-deps:
+    name: Apply required PRs from external repos
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'failure'
+      && github.event.workflow_run.event == 'pull_request'
+      && github.event.workflow_run.run_attempt == 1
+    steps:
+      - name: Look up PR url
+        id: lookup
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_URL=$(gh api \
+            "repos/${{ github.repository }}/commits/${{ github.event.workflow_run.head_sha }}/pulls" \
+            --jq '.[0].html_url')
+          echo "url=$PR_URL" >> $GITHUB_OUTPUT
+
+      - name: Collect required PRs
+        uses: MalTeeez/packscripts@1.4.3
+        with:
+          command: pr apply ${{ steps.lookup.outputs.url }} --target_dir /tmp/packscripts/ --jar_suffix -dev.jar --build_job "Build and test"
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload external deps artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: external-deps
+          path: /tmp/packscripts/
+
+      - name: Rerun failed build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api -X POST \
+            repos/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}/rerun-failed-jobs
