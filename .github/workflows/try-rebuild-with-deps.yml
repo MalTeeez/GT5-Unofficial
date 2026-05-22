@@ -28,20 +28,31 @@ jobs:
           echo "url=$PR_URL" >> $GITHUB_OUTPUT
 
       - name: Collect required PRs
-        uses: MalTeeez/packscripts@1.4.4
+        uses: MalTeeez/packscripts@1.4.5
+        env:
+          NO_COLOR: 1
         with:
           command: pr deps ${{ steps.lookup.outputs.url }} --target_dir /tmp/packscripts/ --jar_suffix -dev.jar --build_job "Build and test"
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          config: https://raw.githubusercontent.com/MalTeeez/packscripts-auto-builds/refs/heads/gtnh-daily/packscripts.json
-          annotated_file: https://raw.githubusercontent.com/MalTeeez/packscripts-auto-builds/refs/heads/gtnh-daily/annotated_mods.json
-          
+
+      - name: Check if deps were collected
+        id: check-deps
+        run: |
+          if [ -n "$(ls -A /tmp/packscripts/ 2>/dev/null)" ]; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Upload external deps artifact
+        if: steps.check-deps.outputs.found == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: external-deps
           path: /tmp/packscripts/
 
       - name: Rerun failed build
+        if: steps.check-deps.outputs.found == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
