@@ -53,7 +53,10 @@ jobs:
         if: steps.check-deps.outputs.found == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: external-deps
+          # Named after the triggering run ID so the rerun can find it by its own run_id.
+          # workflow_run always runs in the default branch context, so artifacts would otherwise
+          # be filed under master's head_sha instead of the PR's, making them invisible to the rerun.
+          name: external-deps-${{ github.event.workflow_run.id }}
           path: /tmp/packscripts/
 
       - name: Rerun failed build

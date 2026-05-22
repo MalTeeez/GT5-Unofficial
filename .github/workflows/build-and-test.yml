@@ -51,21 +51,24 @@ jobs:
         path: .gtnh-workflows
         fetch-depth: 0
 
-    - name: Find latest external-deps artifact for this commit
+    - name: Find external-deps artifact for this run
       id: find-artifact
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
+        # The artifact is named after this run's ID because try-rebuild-with-deps runs in the
+        # master context; filtering by head_sha would never match the PR's SHA.
+        # Reruns keep the same run_id, so this name is stable across attempts.
         RUN_ID=$(gh api \
-          "repos/${{ github.repository }}/actions/artifacts?name=external-deps" \
-          --jq ".artifacts | map(select(.workflow_run.head_sha == \"${{ github.sha }}\")) | .[0].workflow_run.id")
+          "repos/${{ github.repository }}/actions/artifacts?name=external-deps-${{ github.run_id }}" \
+          --jq ".artifacts[0].workflow_run.id")
         echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
       
     - name: Download external deps
       if: steps.find-artifact.outputs.run_id != ''
       uses: actions/download-artifact@v4
       with:
-        name: external-deps
+        name: external-deps-${{ github.run_id }}
         path: external-deps
         run-id: ${{ steps.find-artifact.outputs.run_id }}
         github-token: ${{ secrets.GITHUB_TOKEN }}
