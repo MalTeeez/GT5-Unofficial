@@ -41,7 +41,7 @@ jobs:
         env:
           NO_COLOR: 1
         with:
-          command: pr apply $PR_URL --build_job "Build and test"
+          command: pr apply $PR_URL --build_job "Build and test" --artifact_name "build-libs" --other_allowed_owner "GTNewHorizons"
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run pack test

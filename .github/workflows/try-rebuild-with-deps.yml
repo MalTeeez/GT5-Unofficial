@@ -1,5 +1,8 @@
 name: Try rebuilding with externally required PRs
 
+# Note: this workflow is triggered via workflow_run, which runs in the context of the default branch.
+# GitHub does not associate workflow_run-triggered workflows as checks on commits or PRs,
+# so this workflow will only appear under the Actions tab, never in the commit/PR checks view.
 on:
   workflow_run:
     workflows: ["Build and test"]
@@ -32,8 +35,10 @@ jobs:
         env:
           NO_COLOR: 1
         with:
-          command: pr deps ${{ steps.lookup.outputs.url }} --target_dir /tmp/packscripts/ --jar_suffix -dev.jar --build_job "Build and test"
+          command: pr deps ${{ steps.lookup.outputs.url }} --target_dir /tmp/packscripts/ --jar_suffix -dev.jar --build_job "Build and test" --other_allowed_owner "GTNewHorizons"
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          config: https://raw.githubusercontent.com/MalTeeez/packscripts-auto-builds/refs/heads/gtnh-daily/packscripts.json
+          annotated_file: https://raw.githubusercontent.com/MalTeeez/packscripts-auto-builds/refs/heads/gtnh-daily/annotated_mods.json
 
       - name: Check if deps were collected
         id: check-deps
