@@ -1,5 +1,5 @@
 #!/bin/bash
-set -exuo pipefail
+set -euo pipefail
 
 JSON_FILE=$1
 GRADLE_DIR=~/.gradle
