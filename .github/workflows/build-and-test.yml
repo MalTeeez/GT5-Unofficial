@@ -73,13 +73,10 @@ jobs:
         run-id: ${{ steps.find-artifact.outputs.run_id }}
         github-token: ${{ secrets.GITHUB_TOKEN }}
     
-    - name: debug things
-      run: ls -lahR ./.packscripts/ || true
-      
     - name: Install external deps to local maven
       if: hashFiles('./.packscripts/**') != ''
       run: |
-        ls -lah
+        echo "Aquired build artifacts from rebuild job: " && ls -lahR ./.packscripts/
         bash scripts/upload-deps-to-localmaven.sh ./.packscripts/required_prs.json
         echo "cat ~/.gradle/init.gradle" && cat ~/.gradle/init.gradle
         echo "ls -lahR ~/.m2/repository/com/github" && ls -lahR ~/.m2/repository/com/github

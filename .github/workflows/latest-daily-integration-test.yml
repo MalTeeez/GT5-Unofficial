@@ -36,6 +36,9 @@ jobs:
       PR_URL: ${{ needs.get-pr-url.outputs.pr_url }}
 
     steps:
+      - name: Install libc so we can run our binary on alpine (workaround)
+        run: apk add --no-cache libstdc++ libgcc
+
       - name: Check out PR build artifact
         uses: MalTeeez/packscripts@1.4.7
         env:
