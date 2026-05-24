@@ -38,6 +38,7 @@ jq -c '.dependencies[]' $JSON_FILE | while read -r dep; do
     git -C $WORK_DIR checkout $COMMIT_SHA
 
     # Get coordinates
+    ./gradlew :properties
     PROPS=$(cd $WORK_DIR && ./gradlew -q :properties 2>/dev/null)
     GROUP=$(echo "$PROPS" | grep '^group:' | awk '{print $2}')
     ARTIFACT=$(echo "$PROPS" | grep '^archivesBaseName:' | awk '{print $2}')
