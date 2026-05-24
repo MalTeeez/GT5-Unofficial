@@ -2,7 +2,8 @@
 set -e
 
 JSON_FILE=$1
-INIT_GRADLE=~/.gradle/init.gradle
+GRADLE_DIR=~/.gradle
+INIT_GRADLE=$GRADLE_DIR/init.gradle
 
 # Exit early if there are no dependencies
 DEP_COUNT=$(jq '.dependencies | length' "$JSON_FILE")
@@ -11,7 +12,8 @@ if [ "$DEP_COUNT" -eq 0 ]; then
     exit 1
 fi
 
-# Write init.gradle header
+# Write init.gradle header to user gradle dir
+mkdir -p $GRADLE_DIR
 cat > $INIT_GRADLE << 'EOF'
 allprojects {
     repositories {
