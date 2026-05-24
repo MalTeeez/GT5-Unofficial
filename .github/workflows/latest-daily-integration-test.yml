@@ -37,7 +37,7 @@ jobs:
 
     steps:
       - name: Check out PR build artifact
-        uses: MalTeeez/packscripts@1.4.5
+        uses: MalTeeez/packscripts@1.4.7
         env:
           NO_COLOR: 1
         with:
