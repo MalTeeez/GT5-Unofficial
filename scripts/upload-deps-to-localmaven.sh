@@ -1,5 +1,5 @@
 #!/bin/bash
-set -ex
+set -exuo pipefail
 
 JSON_FILE=$1
 GRADLE_DIR=~/.gradle
@@ -12,7 +12,8 @@ if [ "$DEP_COUNT" -eq 0 ]; then
     exit 1
 fi
 
-# Write init.gradle header to user gradle dir (first as a temp file since it will parsed w. just this)
+# Write init.gradle header to user gradle dir 
+# (first as a temp file since it will parsed w. just this)
 mkdir -p $GRADLE_DIR
 cat > $INIT_GRADLE.tmp << 'EOF'
 allprojects {
@@ -37,13 +38,17 @@ jq -c '.dependencies[]' $JSON_FILE | while read -r dep; do
     cd $WORK_DIR
 
     # Shallow clone and checkout
-    git clone --depth 1 $REPO_URL .
+    git init .
+    git remote add origin $REPO_URL
     git fetch --depth 1 origin $COMMIT_SHA
+    git fetch --tags --depth 1
     git checkout $COMMIT_SHA
 
     # Get coordinates
     PROPS=$(./gradlew -q :properties 2>/dev/null)
     GROUP=$(echo "$PROPS" | grep '^group:' | awk '{print $2}')
+    # Gradle does not actually seem to have project name, 
+    # it just takes the project folder name (in this case, the repo)
     PROJECT=$REPO_NAME
     VERSION=$(echo "$PROPS" | grep '^version:' | awk '{print $2}')
 
