@@ -49,7 +49,9 @@ jq -c '.dependencies[]' $JSON_FILE | while read -r dep; do
 
     echo "Coordinates of local maven result: $GROUP:$PROJECT:$VERSION"
 
+    # Go back to original dir & clean up workdir
     cd $PREV_DIR
+    rm -rf $WORKDIR
 
     # Install jar into mavenLocal
     MAVEN_PATH="${GROUP//.//}/$PROJECT/$VERSION"
