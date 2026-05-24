@@ -56,24 +56,23 @@ jq -c '.dependencies[]' $JSON_FILE | while read -r dep; do
 
     echo "Coordinates of local maven result: $GROUP:$PROJECT:$VERSION"
 
+    # Generate a pom for local maven (need to do this, so we have deps included)
+    VERSION=$VERSION ./gradlew generatePomFileForMavenPublication
+
+    # Setup local maven
+    MAVEN_PATH="${GROUP//.//}/$PROJECT/$VERSION"
+    mkdir -p ~/.m2/repository/$MAVEN_PATH
+
+    # Copy in pom and create fake normal jar so gradle is happy
+    mv ./build/publications/maven/pom-default.xml ~/.m2/repository/$MAVEN_PATH/$PROJECT-$VERSION.pom
+    touch ~/.m2/repository/$MAVEN_PATH/$PROJECT-$VERSION.jar
+
     # Go back to original dir & clean up workdir
     cd $PREV_DIR
     rm -rf $WORK_DIR
 
-    # Install jar into mavenLocal
-    MAVEN_PATH="${GROUP//.//}/$PROJECT/$VERSION"
-    mkdir -p ~/.m2/repository/$MAVEN_PATH
+    # Move actual jar to local maven
     cp $JAR_PATH ~/.m2/repository/$MAVEN_PATH/$PROJECT-$VERSION-dev.jar
-
-    # Write minimal POM so Gradle can find it
-    cat > ~/.m2/repository/$MAVEN_PATH/$PROJECT-$VERSION.pom << POMEOF
-<?xml version="1.0" encoding="UTF-8"?>
-<project>
-  <groupId>$GROUP</groupId>
-  <artifactId>$PROJECT</artifactId>
-  <version>$VERSION</version>
-</project>
-POMEOF
 
     # Append override to init.gradle
     cat >> $INIT_GRADLE.tmp << EOF
