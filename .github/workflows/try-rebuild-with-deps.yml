@@ -43,9 +43,6 @@ jobs:
       - name: Check if deps were collected
         id: check-deps
         run: |
-          pwd
-          ls -lah ./.packscripts/ 2>/dev/null || echo "not here"
-          ls -lah "$GITHUB_WORKSPACE/.packscripts/" 2>/dev/null || echo "not in workspace either"
           if [ -n "$(ls -A ./.packscripts/ 2>/dev/null)" ]; then
             echo "found=true" >> "$GITHUB_OUTPUT"
           else
@@ -61,6 +58,7 @@ jobs:
           # be filed under master's head_sha instead of the PR's, making them invisible to the rerun.
           name: external-deps-${{ github.event.workflow_run.id }}
           path: ./.packscripts/
+          include-hidden-files: true
 
       - name: Rerun failed build
         if: steps.check-deps.outputs.found == 'true'
