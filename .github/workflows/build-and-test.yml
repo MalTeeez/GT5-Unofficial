@@ -76,9 +76,9 @@ jobs:
     - name: Install external deps to local maven
       if: hashFiles('external-deps/**') != ''
       run: |
-        pwd
-        ls -lahR external-deps
-        bash scripts/upload-deps-to-localmaven.sh
+        ls -lah
+        bash scripts/upload-deps-to-localmaven.sh external-deps/required_prs.json
+        cat init.gradle
 
     - name: Determine JDK versions
       id: list-jdk-versions
