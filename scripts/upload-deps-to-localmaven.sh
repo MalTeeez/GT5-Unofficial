@@ -29,21 +29,27 @@ jq -c '.dependencies[]' $JSON_FILE | while read -r dep; do
     REPO_URL=$(echo $dep | jq -r '.repo_url')
     COMMIT_SHA=$(echo $dep | jq -r '.commit_sha')
 
-    WORK_DIR=$(mktemp -d)
-    echo "Processing $REPO_URL @ $COMMIT_SHA"
+    PREV_DIR=$(pwd)
+    REPO_NAME=$(basename $REPO_URL .git)
+    WORK_DIR=$(mktemp -d)/$REPO_NAME
+    mkdir -p $WORK_DIR
+    echo "Processing $REPO_URL @ $COMMIT_SHA (in $WORK_DIR)"
+    cd $WORK_DIR
 
     # Shallow clone and checkout
-    git clone --depth 1 $REPO_URL $WORK_DIR
-    git -C $WORK_DIR fetch --depth 1 origin $COMMIT_SHA
-    git -C $WORK_DIR checkout $COMMIT_SHA
+    git clone --depth 1 $REPO_URL .
+    git fetch --depth 1 origin $COMMIT_SHA
+    git checkout $COMMIT_SHA
 
     # Get coordinates
-    PROPS=$(cd $WORK_DIR && ./gradlew -q :properties 2>/dev/null)
+    PROPS=$(./gradlew -q :properties 2>/dev/null)
     GROUP=$(echo "$PROPS" | grep '^group:' | awk '{print $2}')
-    PROJECT=$(echo "$PROPS" | grep '^name:' | awk '{print $2}')
+    PROJECT=$REPO_NAME
     VERSION=$(echo "$PROPS" | grep '^version:' | awk '{print $2}')
 
-    echo "Coordinates: $GROUP:$PROJECT:$VERSION"
+    echo "Coordinates of local maven result: $GROUP:$PROJECT:$VERSION"
+
+    cd $PREV_DIR
 
     # Install jar into mavenLocal
     MAVEN_PATH="${GROUP//.//}/$PROJECT/$VERSION"
