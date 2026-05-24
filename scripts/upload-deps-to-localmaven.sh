@@ -12,9 +12,9 @@ if [ "$DEP_COUNT" -eq 0 ]; then
     exit 1
 fi
 
-# Write init.gradle header to user gradle dir
+# Write init.gradle header to user gradle dir (first as a temp file since it will parsed w. just this)
 mkdir -p $GRADLE_DIR
-cat > $INIT_GRADLE << 'EOF'
+cat > $INIT_GRADLE.tmp << 'EOF'
 allprojects {
     repositories {
         mavenLocal()
@@ -63,7 +63,7 @@ jq -c '.dependencies[]' $JSON_FILE | while read -r dep; do
 POMEOF
 
     # Append override to init.gradle
-    cat >> $INIT_GRADLE << EOF
+    cat >> $INIT_GRADLE.tmp << EOF
             if (details.requested.module.toString() == '${GROUP}:${ARTIFACT}') {
                 details.useVersion '${VERSION}'
                 details.because 'PR dependency override'
@@ -74,8 +74,11 @@ EOF
 done
 
 # Close init.gradle
-cat >> $INIT_GRADLE << 'EOF'
+cat >> $INIT_GRADLE.tmp << 'EOF'
         }
     }
 }
 EOF
+
+# Rename to actual now that its parseable
+mv $INIT_GRADLE.tmp $INIT_GRADLE
