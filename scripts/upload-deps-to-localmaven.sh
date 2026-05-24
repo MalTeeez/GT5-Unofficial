@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -ex
 
 JSON_FILE=$1
 GRADLE_DIR=~/.gradle
