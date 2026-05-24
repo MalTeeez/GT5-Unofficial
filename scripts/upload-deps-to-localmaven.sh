@@ -50,13 +50,15 @@ jq -c '.dependencies[]' $JSON_FILE | while read -r dep; do
     # Gradle does not actually seem to have project name, 
     # it just takes the project folder name (in this case, the repo)
     PROJECT=$REPO_NAME
-    VERSION=$(echo "$PROPS" | grep '^version:' | awk '{print $2}')
+    # We don't actually care about the version, we just want to override it (this just returns a short sha rn)
+    # If we ever do care about it, we need to figure out how to get it with just a shallow clone
+    VERSION=$(echo "$PROPS" | grep '^version:' | awk '{print $2}')-local
 
     echo "Coordinates of local maven result: $GROUP:$PROJECT:$VERSION"
 
     # Go back to original dir & clean up workdir
     cd $PREV_DIR
-    rm -rf $WORKDIR
+    rm -rf $WORK_DIR
 
     # Install jar into mavenLocal
     MAVEN_PATH="${GROUP//.//}/$PROJECT/$VERSION"
