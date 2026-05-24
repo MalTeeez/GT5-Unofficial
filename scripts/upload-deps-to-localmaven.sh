@@ -38,33 +38,31 @@ jq -c '.dependencies[]' $JSON_FILE | while read -r dep; do
     git -C $WORK_DIR checkout $COMMIT_SHA
 
     # Get coordinates
-    ./gradlew :properties
     PROPS=$(cd $WORK_DIR && ./gradlew -q :properties 2>/dev/null)
     GROUP=$(echo "$PROPS" | grep '^group:' | awk '{print $2}')
-    ARTIFACT=$(echo "$PROPS" | grep '^archivesBaseName:' | awk '{print $2}')
-    [ -z "$ARTIFACT" ] && ARTIFACT=$(echo "$PROPS" | grep '^name:' | awk '{print $2}')
+    PROJECT=$(echo "$PROPS" | grep '^name:' | awk '{print $2}')
     VERSION=$(echo "$PROPS" | grep '^version:' | awk '{print $2}')
 
-    echo "Coordinates: $GROUP:$ARTIFACT:$VERSION"
+    echo "Coordinates: $GROUP:$PROJECT:$VERSION"
 
     # Install jar into mavenLocal
-    MAVEN_PATH="${GROUP//.//}/$ARTIFACT/$VERSION"
+    MAVEN_PATH="${GROUP//.//}/$PROJECT/$VERSION"
     mkdir -p ~/.m2/repository/$MAVEN_PATH
-    cp $JAR_PATH ~/.m2/repository/$MAVEN_PATH/$ARTIFACT-$VERSION-dev.jar
+    cp $JAR_PATH ~/.m2/repository/$MAVEN_PATH/$PROJECT-$VERSION-dev.jar
 
     # Write minimal POM so Gradle can find it
-    cat > ~/.m2/repository/$MAVEN_PATH/$ARTIFACT-$VERSION.pom << POMEOF
+    cat > ~/.m2/repository/$MAVEN_PATH/$PROJECT-$VERSION.pom << POMEOF
 <?xml version="1.0" encoding="UTF-8"?>
 <project>
   <groupId>$GROUP</groupId>
-  <artifactId>$ARTIFACT</artifactId>
+  <artifactId>$PROJECT</artifactId>
   <version>$VERSION</version>
 </project>
 POMEOF
 
     # Append override to init.gradle
     cat >> $INIT_GRADLE.tmp << EOF
-            if (details.requested.module.toString() == '${GROUP}:${ARTIFACT}') {
+            if (details.requested.module.toString() == '${GROUP}:${PROJECT}') {
                 details.useVersion '${VERSION}'
                 details.because 'PR dependency override'
             }
