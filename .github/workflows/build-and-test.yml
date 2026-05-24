@@ -74,7 +74,7 @@ jobs:
         github-token: ${{ secrets.GITHUB_TOKEN }}
     
     - name: debug things
-      run: ls -lahR /tmp
+      run: ls -lahR /tmp || true
       
     - name: Install external deps to local maven
       if: hashFiles('/tmp/packscripts/**') != ''
