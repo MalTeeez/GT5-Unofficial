@@ -81,7 +81,8 @@ jobs:
       run: |
         ls -lah
         bash scripts/upload-deps-to-localmaven.sh ./.packscripts/required_prs.json
-        cat ~/.gradle/init.gradle
+        echo "cat ~/.gradle/init.gradle" && cat ~/.gradle/init.gradle
+        echo "ls -lahR ~/.m2/repository/com/github" && ls -lahR ~/.m2/repository/com/github
 
     - name: Determine JDK versions
       id: list-jdk-versions
