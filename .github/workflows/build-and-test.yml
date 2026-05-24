@@ -72,6 +72,9 @@ jobs:
         path: /tmp/packscripts
         run-id: ${{ steps.find-artifact.outputs.run_id }}
         github-token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: debug things
+      run: ls -lahR /tmp
       
     - name: Install external deps to local maven
       if: hashFiles('/tmp/packscripts/**') != ''
