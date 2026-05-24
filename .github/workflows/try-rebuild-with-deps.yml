@@ -35,7 +35,7 @@ jobs:
         env:
           NO_COLOR: 1
         with:
-          command: pr deps ${{ steps.lookup.outputs.url }} --target_dir ./.packscripts/ --jar_suffix -dev.jar --build_job "Build and test" --other_allowed_owner "GTNewHorizons"
+          command: pr deps ${{ steps.lookup.outputs.url }} --target_dir ./.packscripts/ --jar_suffix -dev.jar --artifact_name -dev.jar --artifact_name build-libs --build_job "Build and test" --other_allowed_owner "GTNewHorizons"
           github_token: ${{ secrets.GITHUB_TOKEN }}
           config: https://raw.githubusercontent.com/MalTeeez/packscripts-auto-builds/refs/heads/gtnh-daily/packscripts.json
           annotated_file: https://raw.githubusercontent.com/MalTeeez/packscripts-auto-builds/refs/heads/gtnh-daily/annotated_mods.json
@@ -43,6 +43,9 @@ jobs:
       - name: Check if deps were collected
         id: check-deps
         run: |
+          pwd
+          ls -lah ./.packscripts/ 2>/dev/null || echo "not here"
+          ls -lah "$GITHUB_WORKSPACE/.packscripts/" 2>/dev/null || echo "not in workspace either"
           if [ -n "$(ls -A ./.packscripts/ 2>/dev/null)" ]; then
             echo "found=true" >> "$GITHUB_OUTPUT"
           else
