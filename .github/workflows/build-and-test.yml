@@ -69,18 +69,18 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: external-deps-${{ github.run_id }}
-        path: /tmp/packscripts
+        path: ./.packscripts/
         run-id: ${{ steps.find-artifact.outputs.run_id }}
         github-token: ${{ secrets.GITHUB_TOKEN }}
     
     - name: debug things
-      run: ls -lahR /tmp || true
+      run: ls -lahR ./.packscripts/ || true
       
     - name: Install external deps to local maven
-      if: hashFiles('/tmp/packscripts/**') != ''
+      if: hashFiles('./.packscripts/**') != ''
       run: |
         ls -lah
-        bash scripts/upload-deps-to-localmaven.sh /tmp/packscripts/required_prs.json
+        bash scripts/upload-deps-to-localmaven.sh ./.packscripts/required_prs.json
         cat init.gradle
 
     - name: Determine JDK versions
