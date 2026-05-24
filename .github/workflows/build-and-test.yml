@@ -57,7 +57,7 @@ jobs:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         # The artifact is named after this run's ID because try-rebuild-with-deps runs in the
-        # master context; filtering by head_sha would never match the PR's SHA.
+        # master context; filtering by head_sha would never match the PR's SHA (I tried).
         # Reruns keep the same run_id, so this name is stable across attempts.
         RUN_ID=$(gh api \
           "repos/${{ github.repository }}/actions/artifacts?name=external-deps-${{ github.run_id }}" \
@@ -75,7 +75,10 @@ jobs:
       
     - name: Install external deps to local maven
       if: hashFiles('external-deps/**') != ''
-      run: bash scripts/upload-deps-to-localmaven.sh
+      run: |
+        pwd
+        ls -lahR external-deps
+        bash scripts/upload-deps-to-localmaven.sh
 
     - name: Determine JDK versions
       id: list-jdk-versions
