@@ -70,6 +70,11 @@ jobs:
       - name: Install libc so we can run our binary on alpine (workaround)
         run: apk add --no-cache libstdc++ libgcc
 
+      - name: Pikachu, Debug!
+        run: |
+          ls -lah .
+          ls -lah /home/gtnh
+          
       - name: Check out PR build artifact
         uses: MalTeeez/packscripts@1.4.9
         env:
