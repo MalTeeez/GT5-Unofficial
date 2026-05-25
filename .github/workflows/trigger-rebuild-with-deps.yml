@@ -1,4 +1,4 @@
-name: Try rebuilding with externally required PRs
+name: Trigger a rebuild with externally required PRs
 
 # Note: this workflow is triggered via workflow_run, which runs in the context of the default branch.
 # GitHub does not associate workflow_run-triggered workflows as checks on commits or PRs,
@@ -11,7 +11,8 @@ on:
 permissions:
   actions: write
   contents: read
-
+  statuses: write
+  
 jobs:
   apply-external-pr-deps:
     name: Apply required PRs from external repos
@@ -31,7 +32,7 @@ jobs:
           echo "url=$PR_URL" >> $GITHUB_OUTPUT
 
       - name: Collect required PRs
-        uses: MalTeeez/packscripts@1.4.8
+        uses: MalTeeez/packscripts@1.4.9
         env:
           NO_COLOR: 1
         with:
@@ -48,6 +49,18 @@ jobs:
           else
             echo "found=false" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Mark status pending on PR commit
+        if: steps.check-deps.outputs.found == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api -X POST \
+            repos/${{ github.repository }}/statuses/${{ github.event.workflow_run.head_sha }} \
+            -f state="pending" \
+            -f context="external-deps-rebuild" \
+            -f description="Applying external PR deps and rebuilding…" \
+            -f target_url="${{ github.event.workflow_run.html_url }}"
 
       - name: Upload external deps artifact
         if: steps.check-deps.outputs.found == 'true'
@@ -67,3 +80,15 @@ jobs:
         run: |
           gh api -X POST \
             repos/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}/rerun-failed-jobs
+
+      - name: Report final status to PR commit
+        if: always() && steps.check-deps.outputs.found == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api -X POST \
+            repos/${{ github.repository }}/statuses/${{ github.event.workflow_run.head_sha }} \
+            -f state="${{ job.status }}" \
+            -f context="external-deps-rebuild" \
+            -f description="External PR deps applied; rebuild triggered" \
+            -f target_url="${{ github.event.workflow_run.html_url }}"

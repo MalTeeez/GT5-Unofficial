@@ -1,5 +1,9 @@
 name: Test integration in latest daily
 
+# Triggered via workflow_run, which runs in the default-branch context.
+# GitHub does NOT attach workflow_run runs as checks on the PR/commit, so this
+# workflow posts its own commit status (context: "Test in latest daily") against
+# the triggering build's head_sha.
 on:
   workflow_run:
     workflows: ["Build and test"]
@@ -8,13 +12,26 @@ on:
 permissions:
   actions: read
   contents: read
+  statuses: write
+
+# Key on the triggering build's head_sha so each PR head is isolated, and a
+# repaired rerun (same run_id, same head_sha, new attempt) cancels the now-stale
+# in-flight run for that head instead of racing it to post a status.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: true
+
+env:
+  STATUS_CONTEXT: "Test in latest daily"
 
 jobs:
   get-pr-url:
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request'
+    # Run on ANY pull_request build completion. We branch on conclusion below;
+    if: github.event.workflow_run.event == 'pull_request'
     outputs:
       pr_url: ${{ steps.lookup.outputs.url }}
+      conclusion: ${{ github.event.workflow_run.conclusion }}
     steps:
       - name: Look up PR url
         id: lookup
@@ -24,27 +41,37 @@ jobs:
           PR_URL=$(gh api \
             "repos/${{ github.repository }}/commits/${{ github.event.workflow_run.head_sha }}/pulls" \
             --jq '.[0].html_url')
-          echo "url=$PR_URL" >> $GITHUB_OUTPUT
+          echo "url=$PR_URL" >> "$GITHUB_OUTPUT"
+
+      # Pending only on the path where the real test is about to run.
+      - name: Mark status pending on PR commit
+        if: github.event.workflow_run.conclusion == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api -X POST \
+            "repos/${{ github.repository }}/statuses/${{ github.event.workflow_run.head_sha }}" \
+            -f state="pending" \
+            -f context="$STATUS_CONTEXT" \
+            -f description="Running integration test in latest daily…" \
+            -f target_url="${{ github.event.workflow_run.html_url }}"
 
   full-pack-test:
     needs: get-pr-url
+    # Real test work runs ONLY on a successful build.
+    if: needs.get-pr-url.outputs.conclusion == 'success'
     name: Test in latest daily
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/malteeez/gtnh-daily:latest
     env:
       PR_URL: ${{ needs.get-pr-url.outputs.pr_url }}
-
     steps:
       - name: Install libc so we can run our binary on alpine (workaround)
         run: apk add --no-cache libstdc++ libgcc
 
-      - name: debug
-        run: |
-          ls -lah /home/gtnh
-          
       - name: Check out PR build artifact
-        uses: MalTeeez/packscripts@1.4.8
+        uses: MalTeeez/packscripts@1.4.9
         env:
           NO_COLOR: 1
         with:
@@ -55,5 +82,49 @@ jobs:
 
       - name: Run pack test
         timeout-minutes: 30
+        run: bash /entrypoint.sh
+
+  report:
+    needs: [get-pr-url, full-pack-test]
+    # Always run so we can post a terminal status on every concluded build,
+    # including the failed path where full-pack-test was skipped.
+    if: always() && needs.get-pr-url.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      # Backstop for the cancel-in-progress race: if a newer run for this same
+      # head_sha exists (e.g. an attempt-2 rerun), this run is stale — bail so a
+      # late attempt-1 failure can't clobber an attempt-2 success on the context.
+      - name: Bail if a newer run for this commit exists
+        id: stalecheck
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          bash /entrypoint.sh
+          LATEST=$(gh api \
+            "repos/${{ github.repository }}/actions/workflows/${{ github.event.workflow.id }}/runs?event=workflow_run&per_page=50" \
+            --jq "[.workflow_runs[] | select(.head_sha==\"${{ github.event.workflow_run.head_sha }}\")] | sort_by(.run_started_at) | last | .id")
+          if [ "$LATEST" != "${{ github.run_id }}" ]; then
+            echo "::notice::Run ${{ github.run_id }} superseded by $LATEST for ${{ github.event.workflow_run.head_sha }}; not posting status."
+            echo "stale=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "stale=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Report final status to PR commit
+        if: steps.stalecheck.outputs.stale == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          CONCL="${{ needs.get-pr-url.outputs.conclusion }}"
+          if [ "$CONCL" != "success" ]; then
+            STATE="failure"
+            DESC="Build failed; integration test not run"
+          else
+            STATE="${{ needs.full-pack-test.result == 'success' && 'success' || 'failure' }}"
+            DESC="Integration test complete"
+          fi
+          gh api -X POST \
+            "repos/${{ github.repository }}/statuses/${{ github.event.workflow_run.head_sha }}" \
+            -f state="$STATE" \
+            -f context="$STATUS_CONTEXT" \
+            -f description="$DESC" \
+            -f target_url="${{ github.event.workflow_run.html_url }}"
