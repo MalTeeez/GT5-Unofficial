@@ -58,9 +58,9 @@ jobs:
           gh api -X POST \
             repos/${{ github.repository }}/statuses/${{ github.event.workflow_run.head_sha }} \
             -f state="pending" \
-            -f context="external-deps-rebuild" \
+            -f context="Trigger rebuild with deps" \
             -f description="Applying external PR deps and rebuilding…" \
-            -f target_url="${{ github.event.workflow_run.html_url }}"
+            -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
       - name: Upload external deps artifact
         if: steps.check-deps.outputs.found == 'true'
@@ -91,4 +91,4 @@ jobs:
             -f state="${{ job.status }}" \
             -f context="Trigger rebuild with deps" \
             -f description="External PR deps applied; rebuild triggered" \
-            -f target_url="${{ github.event.workflow_run.html_url }}"
+            -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

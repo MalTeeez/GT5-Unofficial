@@ -54,7 +54,7 @@ jobs:
             -f state="pending" \
             -f context="$STATUS_CONTEXT" \
             -f description="Running integration test in latest daily…" \
-            -f target_url="${{ github.event.workflow_run.html_url }}"
+            -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
   full-pack-test:
     needs: get-pr-url
@@ -69,11 +69,6 @@ jobs:
     steps:
       - name: Install libc so we can run our binary on alpine (workaround)
         run: apk add --no-cache libstdc++ libgcc
-
-      - name: Pikachu, Debug!
-        run: |
-          ls -lah .
-          ls -lah /home/gtnh
           
       - name: Check out PR build artifact
         uses: MalTeeez/packscripts@1.4.9
@@ -146,4 +141,4 @@ jobs:
             -f state="$STATE" \
             -f context="$STATUS_CONTEXT" \
             -f description="$DESC" \
-            -f target_url="${{ github.event.workflow_run.html_url }}"
+            -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
