@@ -91,24 +91,38 @@ jobs:
     if: always() && needs.get-pr-url.result == 'success'
     runs-on: ubuntu-latest
     steps:
-      # Backstop for the cancel-in-progress race: if a newer run for this same
-      # head_sha exists (e.g. an attempt-2 rerun), this run is stale — bail so a
-      # late attempt-1 failure can't clobber an attempt-2 success on the context.
-      - name: Bail if a newer run for this commit exists
+      # Backstop for the cancel-in-progress race on a repaired rerun. Attempt 1 and
+      # attempt 2 of the triggering build share one run_id but differ in run_attempt,
+      # and both target the SAME commit's status slot. If this run is processing an
+      # earlier attempt than the build's current one, it's stale — bail so a late
+      # attempt-1 result can't clobber the attempt-2 result on the context.
+      #
+      # NOTE: we key off the triggering build's run_attempt, NOT head_sha. Under
+      # workflow_run this workflow runs in the default-branch context, so its OWN
+      # runs are filed under the default branch SHA, never the PR head.
+      # On any read failure we fail OPEN (post anyway): a query hiccup must never
+      # silently suppress the required status.
+      - name: Bail if a newer attempt of the triggering build exists
         id: stalecheck
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          LATEST=$(gh api \
-            "repos/${{ github.repository }}/actions/workflows/${{ github.event.workflow.id }}/runs?event=workflow_run&per_page=50" \
-            --jq "[.workflow_runs[] | select(.head_sha==\"${{ github.event.workflow_run.head_sha }}\")] | sort_by(.run_started_at) | last | .id")
-          if [ "$LATEST" != "${{ github.run_id }}" ]; then
-            echo "::notice::Run ${{ github.run_id }} superseded by $LATEST for ${{ github.event.workflow_run.head_sha }}; not posting status."
+          TRIGGER_RUN_ID="${{ github.event.workflow_run.id }}"
+          MY_ATTEMPT="${{ github.event.workflow_run.run_attempt }}"
+          LATEST_ATTEMPT=$(gh api \
+            "repos/${{ github.repository }}/actions/runs/${TRIGGER_RUN_ID}" \
+            --jq '.run_attempt' 2>/dev/null || true)
+          echo "::notice::trigger run ${TRIGGER_RUN_ID} — mine=${MY_ATTEMPT} latest=${LATEST_ATTEMPT}"
+          if [ -z "$LATEST_ATTEMPT" ]; then
+            # Couldn't read the triggering run — fail open, let the post proceed.
+            echo "stale=false" >> "$GITHUB_OUTPUT"
+          elif [ "$MY_ATTEMPT" -lt "$LATEST_ATTEMPT" ]; then
+            echo "::notice::Attempt ${MY_ATTEMPT} superseded by attempt ${LATEST_ATTEMPT}; not posting status."
             echo "stale=true" >> "$GITHUB_OUTPUT"
           else
             echo "stale=false" >> "$GITHUB_OUTPUT"
           fi
-
+ 
       - name: Report final status to PR commit
         if: steps.stalecheck.outputs.stale == 'false'
         env:
