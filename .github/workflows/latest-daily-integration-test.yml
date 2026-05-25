@@ -39,6 +39,10 @@ jobs:
       - name: Install libc so we can run our binary on alpine (workaround)
         run: apk add --no-cache libstdc++ libgcc
 
+      - name: debug
+        run: |
+          ls -lah /home/gtnh
+          
       - name: Check out PR build artifact
         uses: MalTeeez/packscripts@1.4.8
         env:
