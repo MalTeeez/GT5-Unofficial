@@ -69,7 +69,20 @@ jobs:
     steps:
       - name: Install libc so we can run our binary on alpine (workaround)
         run: apk add --no-cache libstdc++ libgcc
-          
+        
+
+      - name: Override mod urls for development
+        working-directory: /home/gtnh
+        run: |
+          jq --indent 4 '.CI_INTEGRATION = {
+            "SOURCE_OVERRIDES": {
+              "MalTeeez/StructureLib": { "daily_version_override": "1.4.34" },
+              "MalTeeez/GT5-Unofficial": { "daily_version_override": "5.09.52.529" }
+            }
+          }' packscripts.json > packscripts.tmp.json && mv packscripts.tmp.json packscripts.json
+
+          cat packscripts.json
+        
       - name: Check out PR build artifact
         uses: MalTeeez/packscripts@1.4.9
         env:
