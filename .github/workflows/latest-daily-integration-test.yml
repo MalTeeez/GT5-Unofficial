@@ -68,8 +68,7 @@ jobs:
       PR_URL: ${{ needs.get-pr-url.outputs.pr_url }}
     steps:
       - name: Install libc so we can run our binary on alpine (workaround)
-        run: apk add --no-cache libstdc++ libgcc
-        
+        run: apk add --no-cache libstdc++ libgcc jq
 
       - name: Override mod urls for development
         working-directory: /home/gtnh
