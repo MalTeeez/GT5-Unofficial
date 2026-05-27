@@ -32,7 +32,7 @@ jobs:
           echo "url=$PR_URL" >> $GITHUB_OUTPUT
 
       - name: Collect required PRs
-        uses: MalTeeez/packscripts@1.4.10
+        uses: MalTeeez/packscripts@1.4.11
         env:
           NO_COLOR: 1
         with:

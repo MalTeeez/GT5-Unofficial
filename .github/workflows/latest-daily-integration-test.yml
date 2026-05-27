@@ -83,7 +83,7 @@ jobs:
           cat packscripts.json
         
       - name: Check out PR build artifact
-        uses: MalTeeez/packscripts@1.4.10
+        uses: MalTeeez/packscripts@1.4.11
         env:
           NO_COLOR: 1
         with:
