@@ -1,9 +1,7 @@
 name: Test integration in latest daily
 
-# Triggered via workflow_run, which runs in the default-branch context.
-# GitHub does NOT attach workflow_run runs as checks on the PR/commit, so this
-# workflow posts its own commit status (context: "Test in latest daily") against
-# the triggering build's head_sha.
+# Note: this workflow is triggered via workflow_run, which runs in the context of the default branch.
+# Therefore we use the statuses api to place it on the source commit manually
 on:
   workflow_run:
     workflows: ["Build and test"]
@@ -83,11 +81,16 @@ jobs:
           cat packscripts.json
         
       - name: Check out PR build artifact
-        uses: MalTeeez/packscripts@1.4.11
+        uses: MalTeeez/packscripts@1.4.12
         env:
           NO_COLOR: 1
         with:
-          command: pr apply $PR_URL --build_job "Build and test" --artifact_name "build-libs" --other_allowed_owner "GTNewHorizons" --pack_variant "server"
+          command: >
+            pr apply $PR_URL
+              --build_job "Build and test"
+              --artifact_name "build-libs"
+              --other_allowed_owner "GTNewHorizons"
+              --pack_variant "server"
           github_token: ${{ secrets.GITHUB_TOKEN }}
           working_directory: /home/gtnh
           musl: true

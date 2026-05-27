@@ -1,8 +1,7 @@
 name: Trigger a rebuild with externally required PRs
 
 # Note: this workflow is triggered via workflow_run, which runs in the context of the default branch.
-# GitHub does not associate workflow_run-triggered workflows as checks on commits or PRs,
-# so this workflow will only appear under the Actions tab, never in the commit/PR checks view.
+# Therefore we use the statuses api to place it on the source commit manually
 on:
   workflow_run:
     workflows: ["Build and test"]
@@ -32,11 +31,18 @@ jobs:
           echo "url=$PR_URL" >> $GITHUB_OUTPUT
 
       - name: Collect required PRs
-        uses: MalTeeez/packscripts@1.4.11
+        uses: MalTeeez/packscripts@1.4.12
         env:
           NO_COLOR: 1
         with:
-          command: pr deps ${{ steps.lookup.outputs.url }} --target_dir ./.packscripts/ --jar_suffix -dev.jar --artifact_name -dev.jar --artifact_name build-libs --build_job "Build and test" --other_allowed_owner "GTNewHorizons"
+          command: >
+            pr deps ${{ steps.lookup.outputs.url }}
+              --target_dir ./.packscripts/
+              --jar_suffix -dev.jar
+              --artifact_name -dev.jar
+              --artifact_name build-libs
+              --build_job "Build and test"
+              --other_allowed_owner "GTNewHorizons"
           github_token: ${{ secrets.GITHUB_TOKEN }}
           config: https://raw.githubusercontent.com/MalTeeez/packscripts-auto-builds/refs/heads/gtnh-daily/packscripts.json
           annotated_file: https://raw.githubusercontent.com/MalTeeez/packscripts-auto-builds/refs/heads/gtnh-daily/annotated_mods.json
